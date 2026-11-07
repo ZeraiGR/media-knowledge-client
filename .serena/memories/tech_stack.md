@@ -1,0 +1,3 @@
+- Flutter 3.44.4 and Dart 3.12.2, generated Android/iOS/macOS/Windows shells. pubspec.lock is enforced in CI.
+- Android uses a permanent PKCS12 release signing key; credentials stay outside Git and are backed up in private owner configuration.
+- macOS/Windows distribution currently unsigned; iOS compile-only, no installable IPA.

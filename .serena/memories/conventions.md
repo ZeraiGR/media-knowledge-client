@@ -1,0 +1,3 @@
+- Update feed accepts only newer stable SemVer and packages under trusted ZeraiGR/media-knowledge-client GitHub release URLs. Never include iOS unsigned build in update manifest.
+- Browser downloads are user-initiated; published checksums do not imply client-side verification of the downloaded bytes.
+- Device API origin is private runtime configuration, never a baked-in personal hostname.

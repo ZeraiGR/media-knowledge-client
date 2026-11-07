@@ -6,6 +6,10 @@ Flutter application shell for Android, iOS, macOS and Windows. Includes stable r
 
 Flutter 3.44.4 / Dart 3.12.2. Run `flutter pub get --enforce-lockfile`, `flutter analyze`, `flutter test`, then `flutter run` on a supported platform.
 
+## Server connection
+
+Enter the private HTTPS origin of the Tailscale service in the app and press Connect. The address is saved locally after a successful readiness check. Each device needs Tailscale access. No personal hostname is embedded in the public build.
+
 ## Releases
 
 Set `version: X.Y.Z+N` in pubspec.yaml, increment N, commit and push tag `vX.Y.Z`. GitHub Actions builds all four platforms. Android APK uses a persistent release keystore stored in GitHub secrets. The release contains APK, macOS DMG, Windows installer, SHA256SUMS and update-manifest.json.

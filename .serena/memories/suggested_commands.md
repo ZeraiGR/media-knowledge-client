@@ -1,0 +1,3 @@
+- flutter pub get --enforce-lockfile; flutter analyze; flutter test.
+- dart format lib test; flutter run.
+- Stable release: increment pubspec version and build, tag vX.Y.Z; CI creates all installer assets before publishing update feed.

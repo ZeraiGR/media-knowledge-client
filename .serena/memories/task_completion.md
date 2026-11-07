@@ -1,0 +1,3 @@
+- dart format --output=none --set-exit-if-changed lib test; flutter analyze; flutter test; verify native CI matrix.
+- Behavioral/release changes update main media-knowledge docs, personal-docs reader copy and personal-context; publish portal through its standard workflow.
+- PR descriptions omit testing reports. `serena memories check` audits memory links from the checkout.

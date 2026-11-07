@@ -1,0 +1,3 @@
+- Flutter app shell shares media-knowledge architecture; media library/player are future work. VPS never carries media bytes.
+- Release discovery is lib/updates.dart, UI is lib/main.dart; public feed uses client GitHub Releases, independent of VPS.
+- Read toolchain rules in `mem:tech_stack`, run commands in `mem:suggested_commands`, update constraints in `mem:conventions`, and completion obligations in `mem:task_completion`.
