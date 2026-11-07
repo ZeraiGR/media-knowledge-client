@@ -1,0 +1,135 @@
+name: Client CI and release
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: client-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  FLUTTER_VERSION: '3.44.4'
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+      - name: Verify stable tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os,re,pathlib
+          tag=os.environ['TAG']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+',tag)
+          assert re.search(r'^version: '+re.escape(tag[1:])+r'\+\d+$',pathlib.Path('pubspec.yaml').read_text(),re.M)
+          PY
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, platform: android}
+          - {os: macos-15, platform: macos}
+          - {os: windows-2022, platform: windows}
+          - {os: macos-15, platform: ios}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        if: matrix.platform == 'android'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Configure stable Android signing key
+        if: matrix.platform == 'android' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os,base64,pathlib
+          assert os.environ['KEYSTORE'], 'Missing Android release signing key'
+          pathlib.Path('android/app/release.jks').write_bytes(base64.b64decode(os.environ['KEYSTORE']))
+          pathlib.Path('android/key.properties').write_text('storeFile=release.jks\nkeyAlias=media-knowledge\nstorePassword='+os.environ['STORE_PASSWORD']+'\nkeyPassword='+os.environ['KEY_PASSWORD']+'\n')
+          PY
+      - name: Build Android installer
+        if: matrix.platform == 'android' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          flutter build apk --release
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/MediaKnowledge-android.apk
+      - name: Compile Android in CI
+        if: matrix.platform == 'android' && !startsWith(github.ref, 'refs/tags/v')
+        run: flutter build apk --debug
+      - name: Build macOS package (unsigned)
+        if: matrix.platform == 'macos'
+        run: |
+          flutter build macos --release
+          mkdir -p dist
+          hdiutil create -volname 'Media Knowledge' -srcfolder build/macos/Build/Products/Release/media_knowledge.app -ov -format UDZO dist/MediaKnowledge-macos.dmg
+      - name: Build Windows installer (unsigned)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          flutter build windows --release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Select-String -Path pubspec.yaml -Pattern '^version: (\d+\.\d+\.\d+)').Matches.Groups[1].Value
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "/DAppVersion=$version" packaging/windows.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile iOS (no installable IPA without Apple Developer)
+        if: matrix.platform == 'ios'
+        run: flutter build ios --release --no-codesign
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: matrix.platform == 'ios'
+        with:
+          name: ios-unsigned-build
+          path: build/ios/iphoneos/Runner.app
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: matrix.platform != 'ios' && (matrix.platform != 'android' || startsWith(github.ref, 'refs/tags/v'))
+        with:
+          name: installer-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: dist
+      - name: Publish installers and update feed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 scripts/manifest.py "$TAG" dist
+          printf 'Infrastructure preview. macOS and Windows packages are unsigned. iOS distribution is not enabled.\n' > release.md
+          gh release create "$TAG" dist/* --title "$TAG" --notes-file release.md --draft --verify-tag
+          gh release edit "$TAG" --draft=false --latest
