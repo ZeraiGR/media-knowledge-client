@@ -25,6 +25,7 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
+      - run: bash -n packaging/macos/package.sh
       - name: Verify stable tag matches package version
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -86,7 +87,7 @@ jobs:
         run: |
           flutter build macos --release
           mkdir -p dist
-          hdiutil create -volname 'Media Knowledge' -srcfolder build/macos/Build/Products/Release/media_knowledge.app -ov -format UDZO dist/MediaKnowledge-macos.dmg
+          bash packaging/macos/package.sh build/macos/Build/Products/Release/media_knowledge.app dist/MediaKnowledge-macos.dmg
       - name: Build Windows installer (unsigned)
         if: matrix.platform == 'windows'
         shell: pwsh

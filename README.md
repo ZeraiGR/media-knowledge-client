@@ -16,6 +16,8 @@ Set `version: X.Y.Z+N` in pubspec.yaml, increment N, commit and push tag `vX.Y.Z
 
 The running app checks stable releases at startup, resume and every four hours. Manual checks show a progress indicator, disable the check button while a request is running, and confirm the result in a snackbar, including when no update is available or the request fails. It offers the installer matching the OS and opens the direct HTTPS download in the system browser. Installation requires user confirmation. Checksums are published for manual verification; the app does not claim to verify an installer downloaded by the browser.
 
+The macOS DMG includes installation instructions, an arrow and an Applications shortcut. Drag the app to Applications for a new install. If an earlier copy is in `~/Applications`, replace it in that folder instead to avoid two installed copies. The package layout is built by `packaging/macos/package.sh` with the macOS system tools.
+
 macOS and Windows packages are unsigned. iOS is compiled without signing for CI only; it is not an installable IPA and is excluded from the update manifest. Apple Developer, signing and TestFlight remain to be connected. No app-store delivery is configured.
 
 ## Project and operations
