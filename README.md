@@ -14,7 +14,7 @@ Enter the private HTTPS origin of the Tailscale service in the app and press Con
 
 Set `version: X.Y.Z+N` in pubspec.yaml, increment N, commit and push tag `vX.Y.Z`. GitHub Actions builds all four platforms. Android APK uses a persistent release keystore stored in GitHub secrets. The release contains APK, macOS DMG, Windows installer, SHA256SUMS and update-manifest.json.
 
-The running app checks stable releases at startup, resume and every four hours. It offers the installer matching the OS and opens the direct HTTPS download in the system browser. Installation requires user confirmation. Checksums are published for manual verification; the app does not claim to verify an installer downloaded by the browser.
+The running app checks stable releases at startup, resume and every four hours. Manual checks show a progress indicator, disable the check button while a request is running, and confirm the result in a snackbar, including when no update is available or the request fails. It offers the installer matching the OS and opens the direct HTTPS download in the system browser. Installation requires user confirmation. Checksums are published for manual verification; the app does not claim to verify an installer downloaded by the browser.
 
 macOS and Windows packages are unsigned. iOS is compiled without signing for CI only; it is not an installable IPA and is excluded from the update manifest. Apple Developer, signing and TestFlight remain to be connected. No app-store delivery is configured.
 

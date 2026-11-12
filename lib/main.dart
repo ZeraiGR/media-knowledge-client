@@ -23,14 +23,15 @@ class MediaKnowledgeApp extends StatelessWidget {
 }
 
 class InfrastructureScreen extends StatefulWidget {
-  const InfrastructureScreen({super.key});
+  const InfrastructureScreen({super.key, this.client});
+  final http.Client? client;
   @override
   State<InfrastructureScreen> createState() => _InfrastructureScreenState();
 }
 
 class _InfrastructureScreenState extends State<InfrastructureScreen>
     with WidgetsBindingObserver {
-  final _client = http.Client();
+  late final _client = widget.client ?? http.Client();
   final _server = TextEditingController();
   String _serverStatus = 'Укажите HTTPS-адрес сервера из личных настроек.';
   Timer? _timer;
@@ -100,9 +101,12 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
     }
   }
 
-  Future<void> _check() async {
+  Future<void> _check({bool manual = false}) async {
     if (_checking) return;
-    _checking = true;
+    setState(() {
+      _checking = true;
+      _status = 'Проверяем обновления…';
+    });
     try {
       if (Platform.isIOS) {
         if (mounted) {
@@ -135,7 +139,14 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
         );
       }
     } finally {
-      _checking = false;
+      if (mounted) {
+        setState(() => _checking = false);
+        if (manual) {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(SnackBar(content: Text(_status)));
+        }
+      }
     }
   }
 
@@ -202,9 +213,18 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
                     onPressed: _download,
                     child: const Text('Скачать новую версию'),
                   ),
-                TextButton(
-                  onPressed: _check,
-                  child: const Text('Проверить обновления'),
+                TextButton.icon(
+                  onPressed: _checking ? null : () => _check(manual: true),
+                  icon: _checking
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  label: Text(
+                    _checking ? 'Проверяем…' : 'Проверить обновления',
+                  ),
                 ),
               ],
             ),
