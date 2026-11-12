@@ -37,6 +37,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
   Timer? _timer;
   AppUpdate? _update;
   String _status = 'Проверяем обновления…';
+  PackageInfo? _packageInfo;
   bool _checking = false;
 
   @override
@@ -108,6 +109,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
       _status = 'Проверяем обновления…';
     });
     try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _packageInfo = info);
       if (Platform.isIOS) {
         if (mounted) {
           setState(
@@ -117,7 +121,6 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
         }
         return;
       }
-      final info = await PackageInfo.fromPlatform();
       final platform = Platform.isAndroid
           ? 'android'
           : Platform.isMacOS
@@ -206,6 +209,13 @@ class _InfrastructureScreenState extends State<InfrastructureScreen>
                 ),
                 Text(_serverStatus),
                 const SizedBox(height: 24),
+                if (_packageInfo case final info?) ...[
+                  Text(
+                    'Версия ${info.version} · сборка ${info.buildNumber}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Text(_status),
                 const SizedBox(height: 16),
                 if (_update != null)

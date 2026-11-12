@@ -35,11 +35,13 @@ void main() {
           MaterialApp(home: InfrastructureScreen(client: client)),
         );
         await tester.pumpAndSettle();
+        expect(find.text('Версия 0.1.1 · сборка 2'), findsOneWidget);
         expect(find.text('Новых версий пока нет.'), findsOneWidget);
         expect(find.byType(SnackBar), findsNothing);
 
         await tester.tap(find.text('Проверить обновления'));
         await tester.pump();
+        expect(find.text('Версия 0.1.1 · сборка 2'), findsOneWidget);
         expect(find.text('Проверяем обновления…'), findsOneWidget);
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
         final button = tester.widget<TextButton>(
@@ -60,6 +62,7 @@ void main() {
           ),
           findsOneWidget,
         );
+        expect(find.text('Версия 0.1.1 · сборка 2'), findsOneWidget);
         expect(find.byType(CircularProgressIndicator), findsNothing);
         expect(
           tester
